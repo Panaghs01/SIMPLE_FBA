@@ -9,16 +9,16 @@ def schedule_propose(state, time):
         state.node, time, payload, state.handle_event)
 
 
-# def broadcast_pre_prepare(state, time, block):
-#     payload = {
-#         'type': 'pre_prepare',
-#         'block': block,
-#         'round': state.rounds.round,
-#         'CP': state.NAME
-#     }
+def trusted_cast_pre_prepare(state, time, block):
+    payload = {
+        'type': 'pre_prepare',
+        'block': block,
+        'round': state.rounds.round,
+        'CP': state.NAME
+    }
 
-#     state.node.scheduler.schedule_broadcast_message(
-#         state.node, time, payload, state.handle_event) 
+    state.node.scheduler.schedule_trusted_cast_message(
+        state.node, time, payload, state.handle_event) 
 
 
 def trusted_cast_prepare(state, time, block):
