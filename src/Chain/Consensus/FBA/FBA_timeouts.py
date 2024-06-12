@@ -10,11 +10,11 @@ def handle_timeout(state, event):
             return 0
 
         if state.node.state.synced:
-            synced, in_sync_neighbour = state.node.synced_with_neighbours()
+            synced, in_sync_node = state.node.synced_with_trust_list()
             if not synced:
                 state.node.state.synced = False
                 Sync.create_local_sync_event(
-                    state.node, in_sync_neighbour, event.time)
+                    state.node, in_sync_node, event.time)
 
         Rounds.change_round(state.node, event.time)
         return "handled"  # changes state to round_chage but no need to handle backlog

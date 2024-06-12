@@ -131,6 +131,24 @@ class Node():
     def blockchain_length(self):
         return len(self.blockchain)-1
 
+    def synced_with_trusted_nodes(self):
+        '''
+            Comparing the latest block of current node with all
+            nodes in trust list to check sync status
+        '''
+        # create (trusted_node, block, depth) pairs from trusted_nodes
+        #that have a later block than us
+        trusted_nodes_ahead = [
+            (n, n.last_block, n.last_block.depth) for n in self.trust_list
+            if n.last_block.depth > self.last_block.depth]
+
+        if trusted_nodes_ahead:
+            # return false and the node that is furthurest ahead
+            node_furthest_ahead = max(trusted_nodes_ahead, key=lambda x: x[2])
+            return False, node_furthest_ahead[0]
+        else:
+            return True, None
+
     def synced_with_neighbours(self):
         '''
             Comparing the latest block of current node with all neighbours to check sync status

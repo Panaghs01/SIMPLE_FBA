@@ -39,10 +39,13 @@ class Network:
 
     @staticmethod
     def send_message(creator, event):
-        if Parameters.network["gossip"]:
-            Network.multicast(creator, event)
+        if Parameters.simulation['init_CP']== 'FBA':
+            Network.trusted_cast(creator, event)
         else:
-            Network.broadcast(creator, event)
+            if Parameters.network["gossip"]:
+                Network.multicast(creator, event)
+            else:
+                Network.broadcast(creator, event)
 
     @staticmethod
     def multicast(node, event):
@@ -52,6 +55,13 @@ class Network:
             msg = MessageEvent.from_Event(event, n)
             msg.forwarded_by = str(node.id) + ' (creator)'
             Network.message(node, n, msg)
+            
+    @staticmethod
+    def trusted_cast(node, event):
+        for n in node.trust_list:
+            if n != node:
+                msg = MessageEvent.from_Event(event, n)
+                Network.message(node, n, msg)        
 
     @staticmethod
     def broadcast(node, event):
