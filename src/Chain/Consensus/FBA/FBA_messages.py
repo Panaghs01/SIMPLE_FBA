@@ -44,7 +44,7 @@ def trusted_cast_commit(state, time, block):
         state.node, time, payload, state.handle_event)
 
 
-def trusted_cast_new_block(state, time, block):
+def broadcast_new_block(state, time, block):
     payload = {
         'type': 'new_block',
         'block': block,
@@ -52,5 +52,5 @@ def trusted_cast_new_block(state, time, block):
         'CP': state.NAME
     }
 
-    state.node.scheduler.schedule_trusted_cast_message(
+    state.node.scheduler.schedule_broadcast_message(
         state.node, time, payload, state.handle_event)

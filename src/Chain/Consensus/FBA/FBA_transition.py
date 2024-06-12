@@ -7,6 +7,24 @@ import Chain.Consensus.Rounds as Rounds
 
 from Chain.Network import Network
 
+def can_externalize(node):
+    for qslice in node.quorum_slices:
+        counter = 0
+        for n in qslice:
+            if n.id in node.state.cp_state.msgs['commit']:
+                counter += 1
+        if counter >= node.quorum_set[1][1]:
+            return True
+    return False
+
+def can_commit(node):
+    counter = 0
+    for n in node.quorum_slices:
+        if n.id in node.state.cp_state.msgs['prepare']:
+            counter += 1
+    if counter >= node.quorum_set[1][1]:
+        return True
+    return False
 
 def propose(state, event):
     time = event.time
@@ -22,8 +40,7 @@ def propose(state, event):
             print(
                 f"Block creationg failed at {time} for CP {state.NAME}")
     else:
-        # block created, change state, and trusted_cast it.
-        state.state = 'pre_prepared'
+
         # block created, change state, and broadcast it.
         state.state = 'prepared'
         state.block = block.copy()
@@ -32,65 +49,65 @@ def propose(state, event):
             'prepare': [], 'commit': []}
         state.block.extra_data['votes']['prepare'].append((
             event.creator.id, time, Network.size(event)))
-        FBA_messages.trusted_cast_pre_prepare(state, time, block)
+        FBA_messages.trusted_cast_prepare(state, time, block)
 
     return 'handled'
 
 
-def pre_prepare(state, event):
-    time = event.time
-    block = event.payload['block']
+# def pre_prepare(state, event):
+#     time = event.time
+#     block = event.payload['block']
 
-    # validate message: old (invalid), current (continue processing), future (valid, add to backlog)
-    valid, future = state.validate_message(event)
-    if not valid:
-        return 'invalid'
-    if future is not None:
-        return future
-    time += Parameters.execution["msg_val_delay"]
+#     # validate message: old (invalid), current (continue processing), future (valid, add to backlog)
+#     valid, future = state.validate_message(event)
+#     if not valid:
+#         return 'invalid'
+#     if future is not None:
+#         return future
+#     time += Parameters.execution["msg_val_delay"]
 
-    # if node is a new round state (i.e waiting for a new block to be proposed)
-    match state.state:
-        case 'new_round':
-            # validate block
-            time += Parameters.execution["block_val_delay"]
+#     # if node is a new round state (i.e waiting for a new block to be proposed)
+#     match state.state:
+#         case 'new_round':
+#             # validate block
+#             time += Parameters.execution["block_val_delay"]
 
-            if state.validate_block(block):
-                # store block as current block
-                state.block = event.payload['block'].copy()
-                # create the votes extra_data field and log votes
-                state.block.extra_data['votes'] = {
-                    'prepare': [], 'commit': []}
-                state.block.extra_data['votes']['prepare'].append((
-                    event.creator.id, time, Network.size(event)))
+#             if state.validate_block(block):
+#                 # store block as current block
+#                 state.block = event.payload['block'].copy()
+#                 # create the votes extra_data field and log votes
+#                 state.block.extra_data['votes'] = {
+#                     'prepare': [], 'commit': []}
+#                 state.block.extra_data['votes']['prepare'].append((
+#                     event.creator.id, time, Network.size(event)))
 
-                # change state to pre_prepared since block was accepted
-                state.state = 'pre_prepared'
-                # trusted_cast preare message
-                FBA_messages.trusted_cast_prepare(state, time, state.block)
-                state.state = 'prepared'
-                # broadcast preare message
-                FBA_messages.broadcast_prepare(state, time, state.block)
-                # count own vote
-                state.process_vote('prepare', state.node,
-                                    state.rounds.round, time)
+#                 # change state to pre_prepared since block was accepted
+#                 state.state = 'pre_prepared'
+#                 # trusted_cast preare message
+#                 FBA_messages.trusted_cast_prepare(state, time, state.block)
+#                 state.state = 'prepared'
+#                 # broadcast preare message
+#                 FBA_messages.trusted_cast_prepare(state, time, state.block)
+#                 # count own vote
+#                 state.process_vote('prepare', state.node,
+#                                     state.rounds.round, time)
 
-                state.block.extra_data['votes']['prepare'].append((
-                    event.actor.id, time, Network.size(event)))
-                return 'new_state'  # state changed (will check backlog)
-            else:
-                # if the block was invalid begin round change
-                Rounds.change_round(state.node, time)
-                return 'handled'  # event handled but state did not change
-        case 'pre_prepared':
-            return 'invalid'
-        case 'prepared':
-            return 'invalid'
-        case 'round_change':
-            return 'invalid'  # node has decided to skip this round
-        case _:
-            raise ValueError(
-                f"Unexpected state '{state.state} for cp FBA...'")
+#                 state.block.extra_data['votes']['prepare'].append((
+#                     event.actor.id, time, Network.size(event)))
+#                 return 'new_state'  # state changed (will check backlog)
+#             else:
+#                 # if the block was invalid begin round change
+#                 Rounds.change_round(state.node, time)
+#                 return 'handled'  # event handled but state did not change
+#         case 'pre_prepared':
+#             return 'invalid'
+#         case 'prepared':
+#             return 'invalid'
+#         case 'round_change':
+#             return 'invalid'  # node has decided to skip this round
+#         case _:
+#             raise ValueError(
+#                 f"Unexpected state '{state.state} for cp FBA...'")
 
 
 def prepare(state, event):
@@ -107,7 +124,7 @@ def prepare(state, event):
     time += Parameters.execution["msg_val_delay"]
 
     match state.state:
-        case 'pre_prepared':
+        case 'new_round':
             # count prepare vote
             state.process_vote('prepare', event.creator,
                                state.rounds.round, time)
@@ -115,10 +132,36 @@ def prepare(state, event):
             state.block.extra_data['votes']['prepare'].append((
                 event.creator.id, time, Network.size(event)))
 
-            # if we have enough prepare messages (2f messages since leader does not participate)
-            if state.count_votes('prepare', round) >= Parameters.application["required_messages"] - 1:
+            # if >= threshold ammount of nodes have prepared we can start commiting
+            if can_commit(state.node):
                 # change to prepared
+                state.state = 'commit'
+
+                # trusted_cast commit message
+                FBA_messages.trusted_cast_commit(state, time, block)
+
+                # count own vote
+                state.process_vote('commit', state.node,
+                                   state.rounds.round, time)
+
+                state.block.extra_data['votes']['commit'].append((
+                    event.actor.id, time, Network.size(event)))
+            else:
                 state.state = 'prepared'
+                FBA_messages.trusted_cast_prepare(state, time, block)
+
+                return 'new_state'
+
+            # not enough votes yet...
+            return 'handled'
+        case 'prepared':
+            state.process_vote('prepare',event.creator,
+                               state.rounds.round,time)
+            state.block.extra_data['votes']['prepare'].append((
+                event.creator.id, time, Network.size(event)))
+            if can_commit(state.node):
+                
+                state.state = 'commit'
 
                 # trusted_cast commit message
                 FBA_messages.trusted_cast_commit(state, time, block)
@@ -131,13 +174,6 @@ def prepare(state, event):
                     event.actor.id, time, Network.size(event)))
 
                 return 'new_state'
-
-            # not enough votes yet...
-            return 'handled'
-        case 'new_round':
-            return 'backlog'  # node has yet to receive enough pre_prepare messages
-        case 'prepared':
-            return 'invalid'  # node has allready received enough prepared votes
         case 'round_change':
             return 'invalid'  # node has decided to skip this round
         case _:
@@ -161,23 +197,42 @@ def commit(state, event):
     match state.state:
         case 'prepared':
             # count vote
+            state.state = 'commit'
             state.process_vote('commit', event.creator,
                                state.rounds.round, time)
             state.block.extra_data['votes']['commit'].append((
                 event.creator.id, time, Network.size(event)))
+            
             # if we have enough votes
-            if state.count_votes('commit', round) >= Parameters.application["required_messages"]:
+            if can_externalize(state.node):
                 # add block to BC
                 state.node.add_block(state.block, time)
                 # if miner: broadcase new block to nodes
                 if state.node.id == state.miner:
-                    FBA_messages.trusted_cast_new_block(state, time, block)
+                    FBA_messages.broadcast_new_block(state, time, block)
                 # start new round
                 state.start(state.rounds.round + 1, time)
 
                 return 'new_state'
             # not enough votes yet...
             return 'handled'
+        case 'commit':
+            state.process_vote('commit',event.creator,
+                               state.rounds.round,time)
+            
+            state.block.extra_data['votes']['commit'].append((
+                event.creator.id, time, Network.size(event)))
+            
+            if can_externalize(state.node):
+                # add block to BC
+                state.node.add_block(state.block, time)
+                # if miner: broadcase new block to nodes
+                if state.node.id == state.miner:
+                    FBA_messages.broadcast_new_block(state, time, block)
+                # start new round
+                state.start(state.rounds.round + 1, time)
+
+                return 'new_state'
         case 'new_round':
             return 'backlog'  # node is behind in votes... add to backlog
         case "pre_prepared":
@@ -186,7 +241,7 @@ def commit(state, event):
             return 'invalid'  # node has decided to skip this round
         case _:
             raise ValueError(
-                f"Unexpected state '{state.state} for cp BigFoot...'")
+                f"Unexpected state '{state.state} for cp FBA...'")
 
 
 def new_block(state, event):
