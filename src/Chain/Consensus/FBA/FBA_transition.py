@@ -4,26 +4,26 @@ import Chain.Consensus.HighLevelSync as Sync
 import Chain.Consensus.FBA.FBA_messages as FBA_messages
 import Chain.Consensus.Rounds as Rounds
 
+import math
 
 from Chain.Network import Network
 
 def can_externalize(node):
-    for qslice in node.quorum_slices:
-        counter = 0
-        for n in qslice:
-            if n.id in node.state.cp_state.msgs['commit']:
-                counter += 1
-        if counter >= node.quorum_set[1][1]:
-            return True
+    counter = 0
+    for n in node.cp.msgs['commit']:
+        counter += 1
+    if counter >= math.ceil((Parameters.application["Nn"]*2 + 1) / 3):
+        return True
     return False
 
 def can_commit(node):
-    counter = 0
-    for n in node.quorum_slices:
-        if n.id in node.state.cp_state.msgs['prepare']:
-            counter += 1
-    if counter >= node.quorum_set[1][1]:
-        return True
+    for qslice in node.quorum_slices:
+        counter = 0
+        for n in qslice:
+            if n.id in node.cp.msgs['prepare']:
+                counter += 1
+        if counter >= len(qslice):
+            return True
     return False
 
 def propose(state, event):
@@ -47,6 +47,8 @@ def propose(state, event):
         # create the votes extra_data field and log votes
         state.block.extra_data['votes'] = {
             'prepare': [], 'commit': []}
+        state.process_vote('prepare', state.node,
+                          state.rounds.round, time)
         state.block.extra_data['votes']['prepare'].append((
             event.creator.id, time, Network.size(event)))
         FBA_messages.trusted_cast_prepare(state, time, block)
@@ -125,32 +127,45 @@ def prepare(state, event):
 
     match state.state:
         case 'new_round':
-            # count prepare vote
-            state.process_vote('prepare', event.creator,
-                               state.rounds.round, time)
+            #validate block
+            time += Parameters.execution["block_val_delay"]
 
-            state.block.extra_data['votes']['prepare'].append((
-                event.creator.id, time, Network.size(event)))
-
-            # if >= threshold ammount of nodes have prepared we can start commiting
-            if can_commit(state.node):
-                # change to prepared
-                state.state = 'commit'
-
-                # trusted_cast commit message
-                FBA_messages.trusted_cast_commit(state, time, block)
-
-                # count own vote
-                state.process_vote('commit', state.node,
+            if state.validate_block(block):
+                # store block as current block
+                state.block = event.payload['block'].copy()
+                state.block.extra_data['votes'] = {
+                        'prepare': [], 'commit': []}
+                state.process_vote('prepare', event.creator,
                                    state.rounds.round, time)
+    
+                state.block.extra_data['votes']['prepare'].append((
+                    event.creator.id, time, Network.size(event)))
+                
+                state.process_vote('prepare',state.node,state.rounds.round,time)
 
-                state.block.extra_data['votes']['commit'].append((
-                    event.actor.id, time, Network.size(event)))
+                # if >= threshold ammount of nodes have prepared we can start commiting
+                if can_commit(state.node):
+                    # change to prepared
+                    state.state = 'commit'
+    
+                    # trusted_cast commit message
+                    FBA_messages.trusted_cast_commit(state, time, block)
+    
+                    # count own vote
+                    state.process_vote('commit', state.node,
+                                       state.rounds.round, time)
+    
+                    state.block.extra_data['votes']['commit'].append((
+                        event.actor.id, time, Network.size(event)))
+                else:
+                    state.state = 'prepared'
+                    FBA_messages.trusted_cast_prepare(state, time, block)
+    
+                    return 'new_state'
             else:
-                state.state = 'prepared'
-                FBA_messages.trusted_cast_prepare(state, time, block)
-
-                return 'new_state'
+                # if the block was invalid begin round change
+                Rounds.change_round(state.node, time)
+                return 'handled'  # event handled but state did not change
 
             # not enough votes yet...
             return 'handled'
@@ -174,11 +189,13 @@ def prepare(state, event):
                     event.actor.id, time, Network.size(event)))
 
                 return 'new_state'
+        case 'commit':
+            return 'handled'
         case 'round_change':
             return 'invalid'  # node has decided to skip this round
         case _:
             raise ValueError(
-                f"Unexpected state '{state.state} for cp FBA...'")
+                f"Unexpected state '{state.state}' for cp FBA...'")
 
 
 def commit(state, event):
@@ -196,25 +213,33 @@ def commit(state, event):
 
     match state.state:
         case 'prepared':
-            # count vote
-            state.state = 'commit'
+            if event.creator.id not in state.node.cp.msgs['prepare']:
+                state.process_vote('prepare', event.creator,
+                                   state.rounds.round, time)
+                state.block.extra_data['votes']['prepare'].append((
+                                event.creator.id, time, Network.size(event)))
             state.process_vote('commit', event.creator,
                                state.rounds.round, time)
+
             state.block.extra_data['votes']['commit'].append((
                 event.creator.id, time, Network.size(event)))
-            
-            # if we have enough votes
-            if can_externalize(state.node):
-                # add block to BC
-                state.node.add_block(state.block, time)
-                # if miner: broadcase new block to nodes
-                if state.node.id == state.miner:
+            if can_commit(state.node):
+                # count vote
+                state.state = 'commit'
+                state.process_vote('commit', state.node,
+                                   state.rounds.round, time)
+                state.block.extra_data['votes']['commit'].append((
+                    state.node.id, time, Network.size(event)))
+                FBA_messages.trusted_cast_commit(state,time,block)
+                # if we have enough votes
+                if can_externalize(state.node):
+                    # add block to BC
+                    state.node.add_block(state.block, time)
                     FBA_messages.broadcast_new_block(state, time, block)
-                # start new round
-                state.start(state.rounds.round + 1, time)
-
-                return 'new_state'
-            # not enough votes yet...
+                    # start new round
+                    state.start(state.rounds.round + 1, time)
+                    return 'new_state'
+                # not enough votes yet...
             return 'handled'
         case 'commit':
             state.process_vote('commit',event.creator,

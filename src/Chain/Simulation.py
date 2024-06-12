@@ -36,7 +36,9 @@ class Simulation:
         
         for node in self.nodes:
             list_nodes = []
-            size = random.randint(1, Parameters.application['Nn'])
+            size = random.randint(
+                math.ceil((Parameters.application["Nn"]-1)/2),
+                Parameters.application['Nn'])
             for i in range(size):
                 #Generate random trust list size and random trusted nodes
                 #Then disallow duplicates
@@ -70,7 +72,7 @@ class Simulation:
             L = []
             a = self.get_combinations(node.quorum_set[1][0])
             for i in a:
-                if len(i) >= node.quorum_set[1][1]:
+                if len(i) >= node.quorum_set[1][1]-1:
                     tmp = list(i)
                     tmp.append(node)
                     L.append(tuple(tmp))
