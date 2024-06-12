@@ -59,7 +59,11 @@ class Node():
         )
 
         self.cp = None
-
+        
+        self.trust_list = None
+        self.quorum_set = None
+        self.quorum_slices = None
+        
         self.behaviour = Behaviour()
 
         self.backlog = []
@@ -81,7 +85,7 @@ class Node():
         if self.state.alive:
             if full:
                 return f"{color(f'Node: {self.id}',42)}\n   LATEST_BLOCKS {self.trunc_ids}  local_pool: {len(self.pool)}\n SYNCED: {self.state.synced} | CP: {self.cp.NAME} | CHANGE_TO: {Parameters.application['CP'].NAME} | req msg: {Parameters.application['required_messages']} f: {Parameters.application['f']} \
-                        \n   CP: {self.cp.state_to_string()} \n   BEHAVIOUR: {self.behaviour_state_to_string}\n"
+                        \n   CP: {self.cp.state_to_string()} \n   BEHAVIOUR: {self.behaviour_state_to_string}\n  Trust List: {self.trust_list}\n   Quorum Set: {self.quorum_set}\n   Quorum Slices: {self.quorum_slices}\n"
             else:
                 return f"Node: {self.id}"
         else:

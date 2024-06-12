@@ -6,6 +6,9 @@ from Chain.EventQueue import Queue
 from Chain.Handler import handle_event
 
 import Chain.tools as tools
+import random
+import math
+from itertools import combinations
 
 from Chain.Event import SystemEvent
 
@@ -28,6 +31,51 @@ class Simulation:
 
         Parameters.tx_factory = TransactionFactory(self.nodes)
 
+    def generate_trust_lists(self):
+        trust_lists = {}
+        
+        for node in self.nodes:
+            list_nodes = []
+            size = random.randint(1, Parameters.application['Nn'])
+            for i in range(size):
+                #Generate random trust list size and random trusted nodes
+                #Then disallow duplicates
+                n = random.randint(0, Parameters.application['Nn']-1)
+                a = [x for x in self.nodes if x.id == n]
+                while node.id == n or a[0] in list_nodes:   
+                    n = random.randint(0, Parameters.application['Nn']-1)
+                    a = [x for x in self.nodes if x.id == n]
+
+                list_nodes.append(a[0])
+            
+            
+            node.trust_list = list_nodes
+            
+    def quorum_set(self):
+        #Encoding the qset function and initializing the threshold
+        #According to All neighbors Quorum Slice Configuration math formula
+        for n in self.nodes:
+            threshold = math.ceil((2*len(n.trust_list)+1)/3)
+            n.quorum_set = (n,(n.trust_list,threshold))
+    
+    def get_combinations(self,lst): # creating a user-defined method
+       combination = [] # empty list 
+       #Generate every combination with cardinality 1 to length of list parsed
+       for r in range(1, len(lst) + 1):
+          combination.extend(combinations(lst, r))
+       return combination
+    
+    def quorum_slices(self):
+        for node in self.nodes:
+            L = []
+            a = self.get_combinations(node.quorum_set[1][0])
+            for i in a:
+                if len(i) >= node.quorum_set[1][1]:
+                    tmp = list(i)
+                    tmp.append(node)
+                    L.append(tuple(tmp))
+            node.quorum_slices = tuple(L)
+
     def init_simulation(self):
         genesis = Block.genesis_block()
 
@@ -36,7 +84,10 @@ class Simulation:
             n.add_block(genesis, self.clock)
             n.cp = self.current_cp(n)
             n.cp.init()
-
+            
+        self.generate_trust_lists()
+        self.quorum_set()
+        self.quorum_slices()
 
     def sim_next_event(self):
         tools.debug_logs(msg=tools.sim_info(self, print_event_queues=True))

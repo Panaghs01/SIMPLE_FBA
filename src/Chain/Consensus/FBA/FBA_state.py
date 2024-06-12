@@ -26,9 +26,6 @@ class FBA():
 
     NAME = "FBA"
 
-    def generate_trust_list(self,):
-        pass
-
     def __init__(self, node) -> None:
         self.rounds = Rounds.round_change_state()
 
@@ -43,9 +40,6 @@ class FBA():
 
         self.node = node
         
-        self.trust_list = None
-        self.quorum_set = None
-        self.quorum_slices = None
 
 
     def set_state(self):
