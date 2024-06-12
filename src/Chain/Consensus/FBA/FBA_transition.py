@@ -22,7 +22,7 @@ def propose(state, event):
             print(
                 f"Block creationg failed at {time} for CP {state.NAME}")
     else:
-        # block created, change state, and broadcast it.
+        # block created, change state, and trusted_cast it.
         state.state = 'pre_prepared'
         state.block = block.copy()
         # create the votes extra_data field and log votes
@@ -30,7 +30,7 @@ def propose(state, event):
             'pre_prepare': [], 'prepare': [], 'commit': []}
         state.block.extra_data['votes']['pre_prepare'].append((
             event.creator.id, time, Network.size(event)))
-        FBA_messages.broadcast_pre_prepare(state, time, block)
+        FBA_messages.trusted_cast_pre_prepare(state, time, block)
 
     return 'handled'
 
@@ -64,8 +64,8 @@ def pre_prepare(state, event):
 
                 # change state to pre_prepared since block was accepted
                 state.state = 'pre_prepared'
-                # broadcast preare message
-                FBA_messages.broadcast_prepare(state, time, state.block)
+                # trusted_cast preare message
+                FBA_messages.trusted_cast_prepare(state, time, state.block)
                 # count own vote
                 state.process_vote('prepare', state.node,
                                    state.rounds.round, time)
@@ -115,8 +115,8 @@ def prepare(state, event):
                 # change to prepared
                 state.state = 'prepared'
 
-                # broadcast commit message
-                FBA_messages.broadcast_commit(state, time, block)
+                # trusted_cast commit message
+                FBA_messages.trusted_cast_commit(state, time, block)
 
                 # count own vote
                 state.process_vote('commit', state.node,
@@ -166,7 +166,7 @@ def commit(state, event):
                 state.node.add_block(state.block, time)
                 # if miner: broadcase new block to nodes
                 if state.node.id == state.miner:
-                    FBA_messages.broadcast_new_block(state, time, block)
+                    FBA_messages.trusted_cast_new_block(state, time, block)
                 # start new round
                 state.start(state.rounds.round + 1, time)
 
