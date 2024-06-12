@@ -162,7 +162,7 @@ class FBA():
     ########################## HANDLERER ###########################
 
     @staticmethod
-    def handle_event(event):  # specific to PBFT - called by events in Handler.handle_event()
+    def handle_event(event):  # specific to FBA - called by events in Handler.handle_event()
         match event.payload["type"]:
             case 'propose':
                 return state_transitions.propose(event.actor.cp, event)

@@ -12,6 +12,13 @@ class Scheduler:
 
         Network.send_message(creator, event)
         return event
+    
+    def schedule_trusted_cast_message(self, creator, time, payload, handler):
+        # Schedules a message trusted_cast from node
+        event = Event(handler, creator, time, payload)
+
+        Network.send_message(creator, event)
+        return event
 
     def schedule_event(self, creator, time, payload, handler):
         # Schedules a local event
