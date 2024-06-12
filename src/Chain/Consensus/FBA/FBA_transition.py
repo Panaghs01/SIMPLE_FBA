@@ -24,11 +24,13 @@ def propose(state, event):
     else:
         # block created, change state, and trusted_cast it.
         state.state = 'pre_prepared'
+        # block created, change state, and broadcast it.
+        state.state = 'prepared'
         state.block = block.copy()
         # create the votes extra_data field and log votes
         state.block.extra_data['votes'] = {
-            'pre_prepare': [], 'prepare': [], 'commit': []}
-        state.block.extra_data['votes']['pre_prepare'].append((
+            'prepare': [], 'commit': []}
+        state.block.extra_data['votes']['prepare'].append((
             event.creator.id, time, Network.size(event)))
         FBA_messages.trusted_cast_pre_prepare(state, time, block)
 
@@ -58,17 +60,20 @@ def pre_prepare(state, event):
                 state.block = event.payload['block'].copy()
                 # create the votes extra_data field and log votes
                 state.block.extra_data['votes'] = {
-                    'pre_prepare': [], 'prepare': [], 'commit': []}
-                state.block.extra_data['votes']['pre_prepare'].append((
+                    'prepare': [], 'commit': []}
+                state.block.extra_data['votes']['prepare'].append((
                     event.creator.id, time, Network.size(event)))
 
                 # change state to pre_prepared since block was accepted
                 state.state = 'pre_prepared'
                 # trusted_cast preare message
                 FBA_messages.trusted_cast_prepare(state, time, state.block)
+                state.state = 'prepared'
+                # broadcast preare message
+                FBA_messages.broadcast_prepare(state, time, state.block)
                 # count own vote
                 state.process_vote('prepare', state.node,
-                                   state.rounds.round, time)
+                                    state.rounds.round, time)
 
                 state.block.extra_data['votes']['prepare'].append((
                     event.actor.id, time, Network.size(event)))
