@@ -98,7 +98,7 @@ class Simulation:
         self.clock = next_event.time
 
         tools.debug_logs(msg=f"Next:{next_event}",
-                         command="Commad:", simulator=self)
+                         command="Command:", simulator=self)
 
         # call appropirate handler based on event type
         if isinstance(next_event, SystemEvent):
