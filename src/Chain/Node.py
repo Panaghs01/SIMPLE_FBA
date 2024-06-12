@@ -131,7 +131,7 @@ class Node():
     def blockchain_length(self):
         return len(self.blockchain)-1
 
-    def synced_with_trusted_nodes(self):
+    def synced_with_trust_list(self):
         '''
             Comparing the latest block of current node with all
             nodes in trust list to check sync status
