@@ -251,9 +251,8 @@ def commit(state, event):
             if can_externalize(state.node):
                 # add block to BC
                 state.node.add_block(state.block, time)
-                # if miner: broadcase new block to nodes
-                if state.node.id == state.miner:
-                    FBA_messages.broadcast_new_block(state, time, block)
+
+                FBA_messages.broadcast_new_block(state, time, block)
                 # start new round
                 state.start(state.rounds.round + 1, time)
 
