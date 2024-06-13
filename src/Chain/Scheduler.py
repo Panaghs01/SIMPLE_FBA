@@ -17,7 +17,7 @@ class Scheduler:
         # Schedules a message trusted_cast from node
         event = Event(handler, creator, time, payload)
 
-        Network.send_message(creator, event)
+        Network.send_message(creator, event, True)
         return event
 
     def schedule_event(self, creator, time, payload, handler):

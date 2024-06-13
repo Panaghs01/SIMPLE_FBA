@@ -52,5 +52,6 @@ def broadcast_new_block(state, time, block):
         'CP': state.NAME
     }
 
+
     state.node.scheduler.schedule_broadcast_message(
         state.node, time, payload, state.handle_event)

@@ -38,8 +38,8 @@ class Network:
         return size
 
     @staticmethod
-    def send_message(creator, event):
-        if Parameters.simulation['init_CP']== 'FBA':
+    def send_message(creator, event, flag=False):
+        if flag==True:
             Network.trusted_cast(creator, event)
         else:
             if Parameters.network["gossip"]:
