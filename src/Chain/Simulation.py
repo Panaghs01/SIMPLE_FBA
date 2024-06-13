@@ -32,26 +32,21 @@ class Simulation:
         Parameters.tx_factory = TransactionFactory(self.nodes)
 
     def generate_trust_lists(self):
-        trust_lists = {}
         
         for node in self.nodes:
-            list_nodes = []
             size = random.randint(
                 math.ceil((Parameters.application["Nn"]-1)/2),
-                Parameters.application['Nn'])
+                Parameters.application['Nn']-1)
+            a = []
             for i in range(size):
                 #Generate random trust list size and random trusted nodes
                 #Then disallow duplicates
                 n = random.randint(0, Parameters.application['Nn']-1)
-                a = [x for x in self.nodes if x.id == n]
-                while node.id == n or a in list_nodes:   
+                while n in a or n == node.id:
                     n = random.randint(0, Parameters.application['Nn']-1)
-                    a = [x for x in self.nodes if x.id == n]
-
-                list_nodes.append(a[0])
+                a.append(n)
             
-            
-            node.trust_list = list_nodes
+            node.trust_list = [x for x in self.nodes for y in a if x.id == y]
             
     def quorum_set(self):
         #Encoding the qset function and initializing the threshold
