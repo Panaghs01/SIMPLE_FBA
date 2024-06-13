@@ -13,8 +13,8 @@ application:
   Tn: 100 # number of transaction produced per second
   base_transation_size: 0 # the base size of each transactions
   Tsize: 0.001 # the average size of a transaction (exponential distribution)
-  Faulty_nodes: 1   #The number of nodes that can fail
-  Byzantine_nodes: 0    #The number of malicious nodes
+  Faulty_nodes: 0   #The number of nodes that can fail
+  Byzantine_nodes: 1   #The number of malicious nodes
 
 execution:
   creation_time: 0.1 # block creation delay
@@ -56,7 +56,7 @@ behaviour:
   byzantine_nodes:
     # percent of nodes that will be byzantine
     # (percentange based on how many faulty nodes the network can tolerate)
-    num_byzantine: 0
+    num_byzantine: 0 
   sync:
     # define the chance a byzantine node will send bad sync data 
     # (and the delay that will cause)

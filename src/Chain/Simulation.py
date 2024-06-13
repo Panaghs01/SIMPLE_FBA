@@ -46,6 +46,8 @@ class Simulation:
                     n = random.randint(0, Parameters.application['Nn']-1)
                 a.append(n)
             
+            #simple node id -> node match, to have node objects instead of 
+            #IDs in the trust list 
             node.trust_list = [x for x in self.nodes for y in a if x.id == y]
             
     def quorum_set(self):
@@ -81,11 +83,19 @@ class Simulation:
             n.add_block(genesis, self.clock)
             n.cp = self.current_cp(n)
             n.cp.init()
+            
         if Parameters.application["Faulty_nodes"]:
             faulty = random.sample(self.nodes,Parameters.application["Faulty_nodes"])
             for node in self.nodes:
                 if node in faulty:
-                    node.fault_chance = random.randint(5,20)
+                    node.faulty()
+                    # node.fault_chance = random.randint(5,20)
+                    
+        if Parameters.application["Byzantine_nodes"]:
+            byzantine = random.sample(self.nodes,Parameters.application["Byzantine_nodes"])
+            for node in self.nodes:
+                if node in byzantine:
+                    node.byzantine()
             
         self.generate_trust_lists()
         self.quorum_set()

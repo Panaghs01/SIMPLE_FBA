@@ -75,7 +75,10 @@ class Node():
         self.quorum_set = None
         self.quorum_slices = None
         
-        #self.behaviour = Behaviour(self)
+        self.behaviour = SimpleNamespace(
+            Faulty = False,
+            Byzantine = False
+        )
 
         self.backlog = []
 
@@ -89,20 +92,20 @@ class Node():
         self.misbehave_chance = 0
         self.fault_chance = 0
         
-    def node_fault(self, time):
-        chance = random.randint(0, 100)
-        #if can, fix
-        if self.fault_chance > chance:
-            self.kill()
-            resurrect_time = time + random.randint(
-                Parameters.behaviour["crash_probs"]["mean_recovery_time"]["low"],
-                Parameters.behaviour["crash_probs"]["mean_recovery_time"]["high"])
-            #self.scheduler.schedule_event.resurrect
-            #self.scheduler.schedule_event.resync
-            
-        else:
-            pass
-        
+    #this needs to be transfered to FBA_transition  
+    # def fault(self, time):
+    #     chance = random.randint(0, 100)
+    #     #if can, fix
+    #     if self.fault_chance > chance:
+    #         self.kill()
+    #         resurrect_time = time + random.randint(
+    #             Parameters.behaviour["crash_probs"]["mean_recovery_time"]["low"],
+    #             Parameters.behaviour["crash_probs"]["mean_recovery_time"]["high"])
+    #         #self.scheduler.schedule_event.resurrect
+    #         #self.scheduler.schedule_event.resync
+    #     else:
+    #         pass
+    
         
     def __repr__(self):
         if self.state.alive:
@@ -199,6 +202,12 @@ class Node():
 
     def resurect(self):
         self.state.alive = True
+        
+    def byzantine(self):
+        self.behaviour.Byzantine=True
+    
+    def faulty(self):
+        self.behaviour.Faulty=True
 
     def add_block(self, block, time):
         '''
@@ -209,7 +218,6 @@ class Node():
 
         self.pool = Parameters.tx_factory.remove_transactions_from_pool(
             block.transactions, self.pool)
-
 
     def add_event(self, event):
         if self.state.alive:

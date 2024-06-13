@@ -5,6 +5,7 @@ import Chain.Consensus.FBA.FBA_messages as FBA_messages
 import Chain.Consensus.Rounds as Rounds
 
 import math
+import random
 
 from Chain.Network import Network
 
@@ -26,19 +27,41 @@ def can_commit(node):
             return True
     return False
 
+def misbehave(state):
+    chance = random.randint(0, 100)
+    idle_chance = 10 #random.randint(0,10)
+    misinform = 20 #random.randint(idle_chance,idle_chance+10)
+    if chance<=idle_chance:
+        state.state='idle'
+    elif chance<=misinform:
+        coinflip=random.randint(1,2) 
+        if coinflip == 1:
+            state.state='mispreparing'
+        else: 
+            state.state='miscommiting'
+
 def propose(state, event):
     time = event.time
+      
+    #if state.node.behaviour.Faulty==True: fault(state) 
+    #if state.node.behaviour.Byzantine==True: misbehave(state) 
 
-    # attempt to create block
-    block, creation_time = state.create_FBA_block(time)
-
+    if not state.node.behaviour.Byzantine:
+        # attempt to create block
+        block, creation_time = state.create_FBA_block(time)
+    else:
+        #make this have wronk time
+        #to simulate byzantine
+        #how make?!?!
+        block, creation_time = state.create_FBA_block(time)
+    
     if block is None:
         # if there is still time in the round, attempt to reschedule later when txions might be there
         if creation_time + 1 + Parameters.execution['creation_time'] <= state.timeout.time:
             FBA_messages.schedule_propose(state, creation_time + 1)
         else:
             print(
-                f"Block creationg failed at {time} for CP {state.NAME}")
+                f"Block creation failed at {time} for CP {state.NAME}")
     else:
 
         # block created, change state, and broadcast it.
@@ -51,65 +74,12 @@ def propose(state, event):
                           state.rounds.round, time)
         state.block.extra_data['votes']['prepare'].append((
             event.creator.id, time, Network.size(event)))
-        FBA_messages.trusted_cast_prepare(state, time, block)
+        if state.node.behaviour.Byzantine==False:
+           FBA_messages.trusted_cast_prepare(state, time, block)
+        else: 
+            FBA_messages.broadcast_prepare(state, time, block)
 
     return 'handled'
-
-
-# def pre_prepare(state, event):
-#     time = event.time
-#     block = event.payload['block']
-
-#     # validate message: old (invalid), current (continue processing), future (valid, add to backlog)
-#     valid, future = state.validate_message(event)
-#     if not valid:
-#         return 'invalid'
-#     if future is not None:
-#         return future
-#     time += Parameters.execution["msg_val_delay"]
-
-#     # if node is a new round state (i.e waiting for a new block to be proposed)
-#     match state.state:
-#         case 'new_round':
-#             # validate block
-#             time += Parameters.execution["block_val_delay"]
-
-#             if state.validate_block(block):
-#                 # store block as current block
-#                 state.block = event.payload['block'].copy()
-#                 # create the votes extra_data field and log votes
-#                 state.block.extra_data['votes'] = {
-#                     'prepare': [], 'commit': []}
-#                 state.block.extra_data['votes']['prepare'].append((
-#                     event.creator.id, time, Network.size(event)))
-
-#                 # change state to pre_prepared since block was accepted
-#                 state.state = 'pre_prepared'
-#                 # trusted_cast preare message
-#                 FBA_messages.trusted_cast_prepare(state, time, state.block)
-#                 state.state = 'prepared'
-#                 # broadcast preare message
-#                 FBA_messages.trusted_cast_prepare(state, time, state.block)
-#                 # count own vote
-#                 state.process_vote('prepare', state.node,
-#                                     state.rounds.round, time)
-
-#                 state.block.extra_data['votes']['prepare'].append((
-#                     event.actor.id, time, Network.size(event)))
-#                 return 'new_state'  # state changed (will check backlog)
-#             else:
-#                 # if the block was invalid begin round change
-#                 Rounds.change_round(state.node, time)
-#                 return 'handled'  # event handled but state did not change
-#         case 'pre_prepared':
-#             return 'invalid'
-#         case 'prepared':
-#             return 'invalid'
-#         case 'round_change':
-#             return 'invalid'  # node has decided to skip this round
-#         case _:
-#             raise ValueError(
-#                 f"Unexpected state '{state.state} for cp FBA...'")
 
 
 def prepare(state, event):
@@ -125,6 +95,11 @@ def prepare(state, event):
         return future
     time += Parameters.execution["msg_val_delay"]
 
+    # if state.node.behaviour.Faulty==True: fault(state) 
+    if state.node.behaviour.Byzantine: 
+        #check if node is in sync
+        misbehave(state) 
+    
     match state.state:
         case 'new_round':
             #validate block
@@ -193,6 +168,42 @@ def prepare(state, event):
             return 'handled'
         case 'round_change':
             return 'invalid'  # node has decided to skip this round
+        case 'idle':
+            pass
+            #if node is idle when the block is proposed
+            #it very obviously doesnt copy the block and therefore
+            #it will crash the shit later
+            #FIX!
+        case 'mispreparing':
+            if state.validate_block(block):
+                # store block as current block
+                state.block = event.payload['block'].copy()
+                state.block.extra_data['votes'] = {
+                        'prepare': [], 'commit': []}
+                state.process_vote('prepare', event.creator,
+                                   state.rounds.round, time)
+    
+                state.block.extra_data['votes']['prepare'].append((
+                    event.creator.id, time, Network.size(event)))
+                # count own vote
+                state.process_vote('prepare', state.node, state.rounds.round, time)
+                #broadcast a propose statement, in case it fools anyone
+                FBA_messages.broadcast_prepare(state, time, block)
+        case 'miscommiting':
+            if state.validate_block(block):
+                # store block as current block
+                state.block = event.payload['block'].copy()
+                state.block.extra_data['votes'] = {
+                        'prepare': [], 'commit': []}
+                state.process_vote('prepare', event.creator,
+                                   state.rounds.round, time)
+    
+                state.block.extra_data['votes']['prepare'].append((
+                    event.creator.id, time, Network.size(event)))
+                # count own vote
+                state.process_vote('prepare', state.node, state.rounds.round, time)
+                #broadcast a propose statement, in case it fools anyone
+                FBA_messages.broadcast_commit(state, time, block)
         case _:
             raise ValueError(
                 f"Unexpected state '{state.state}' for cp FBA...'")
@@ -210,7 +221,10 @@ def commit(state, event):
     if future is not None:
         return future
     time += Parameters.execution["msg_val_delay"]
-
+    
+    #if state.node.behaviour.Faulty==True: fault(state) 
+    if state.node.behaviour.Byzantine==True: misbehave(state) 
+    
     match state.state:
         case 'prepared':
             if event.creator.id not in state.node.cp.msgs['prepare']:
@@ -259,10 +273,34 @@ def commit(state, event):
                 return 'new_state'
         case 'new_round':
             return 'backlog'  # node is behind in votes... add to backlog
-        case "pre_prepared":
-            return 'backlog'  # node is behind in votes... add to blocklog
         case 'round_change':
             return 'invalid'  # node has decided to skip this round
+        case 'idle':
+            pass
+        case 'mispreparing':
+            if event.creator.id not in state.node.cp.msgs['prepare']:
+                state.process_vote('prepare', event.creator,
+                                   state.rounds.round, time)
+                state.block.extra_data['votes']['prepare'].append((
+                                event.creator.id, time, Network.size(event)))
+            state.process_vote('commit', state.node,
+                               state.rounds.round, time)
+            #broadcast a propose statement, in case it fools anyone
+            FBA_messages.broadcast_prepare(state, time, block)
+            # count own vote
+            state.process_vote('prepare', state.node, state.rounds.round, time)
+        case 'miscommiting':
+            if event.creator.id not in state.node.cp.msgs['prepare']:
+                state.process_vote('prepare', event.creator,
+                                   state.rounds.round, time)
+                state.block.extra_data['votes']['prepare'].append((
+                                event.creator.id, time, Network.size(event)))
+            state.process_vote('commit', state.node,
+                               state.rounds.round, time)
+            #broadcast a commit statement, without caring if slice is satisfied
+            FBA_messages.broadcast_commit(state, time, block)
+            # count own vote
+            state.process_vote('commit', state.node, state.rounds.round, time)
         case _:
             raise ValueError(
                 f"Unexpected state '{state.state} for cp FBA...'")
