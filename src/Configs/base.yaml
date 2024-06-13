@@ -8,7 +8,7 @@ simulation:
   print_info: True # print information about the simulation at the start of execution
 
 application:
-  Nn: 5 # number of block producing nodes to simulate 
+  Nn: 4 # number of block producing nodes to simulate 
   TI_dur: 25  # transaction generation (and general) update interval
   Tn: 100 # number of transaction produced per second
   base_transation_size: 0 # the base size of each transactions

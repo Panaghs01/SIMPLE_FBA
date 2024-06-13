@@ -44,7 +44,7 @@ class Simulation:
                 #Then disallow duplicates
                 n = random.randint(0, Parameters.application['Nn']-1)
                 a = [x for x in self.nodes if x.id == n]
-                while node.id == n or a[0] in list_nodes:   
+                while node.id == n or a in list_nodes:   
                     n = random.randint(0, Parameters.application['Nn']-1)
                     a = [x for x in self.nodes if x.id == n]
 
