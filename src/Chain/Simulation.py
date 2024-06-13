@@ -86,6 +86,11 @@ class Simulation:
             n.add_block(genesis, self.clock)
             n.cp = self.current_cp(n)
             n.cp.init()
+        if Parameters.application["Faulty_nodes"]:
+            faulty = random.sample(self.nodes,Parameters.application["Faulty_nodes"])
+            for node in self.nodes:
+                if node in faulty:
+                    node.fault_chance = random.randint(5,20)
             
         self.generate_trust_lists()
         self.quorum_set()

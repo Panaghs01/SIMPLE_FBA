@@ -6,9 +6,20 @@ from types import SimpleNamespace
 
 from Chain.tools import color
 
+import random
 
-class Behaviour():
-    pass
+# class Behaviour():
+#     def __init__(self,node,Faulty):
+#         if Faulty:
+#             self.fault_chance = random.randint(5,20)
+#         else:
+#             pass
+    
+#     def fail(self,node):
+#         chance = random.randint(0,100)
+#         if chance < self.fault_chance:
+#             node.kill()
+
 
 class Node():
     '''
@@ -64,7 +75,7 @@ class Node():
         self.quorum_set = None
         self.quorum_slices = None
         
-        self.behaviour = Behaviour()
+        #self.behaviour = Behaviour(self)
 
         self.backlog = []
 
@@ -74,7 +85,25 @@ class Node():
 
         # reconfiguration
         self.configuration = []
-
+        
+        self.misbehave_chance = 0
+        self.fault_chance = 0
+        
+    def node_fault(self, time):
+        chance = random.randint(0, 100)
+        #if can, fix
+        if self.fault_chance > chance:
+            self.kill()
+            resurrect_time = time + random.randint(
+                Parameters.behaviour["crash_probs"]["mean_recovery_time"]["low"],
+                Parameters.behaviour["crash_probs"]["mean_recovery_time"]["high"])
+            #self.scheduler.schedule_event.resurrect
+            #self.scheduler.schedule_event.resync
+            
+        else:
+            pass
+        
+        
     def __repr__(self):
         if self.state.alive:
             return f"Node: {self.id}"
@@ -166,7 +195,7 @@ class Node():
             return True, None
 
     def kill(self):
-        self.state.alive = False
+        self.state.alive = False   
 
     def resurect(self):
         self.state.alive = True

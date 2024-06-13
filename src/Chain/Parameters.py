@@ -38,6 +38,7 @@ class Parameters:
         Parameters.PBFT = {}
         Parameters.FBA = {}
         Parameters.CPs = {}
+        Parameters.behaviour = {}
         Parameters.tx_factory = None
 
     @staticmethod
@@ -74,6 +75,11 @@ class Parameters:
             Parameters.data = params["data"]
         except KeyError:
             print("NO 'data' Parameters")
+            
+        try:
+            Parameters.behaviour = params["behaviour"]
+        except KeyError:
+            print("NO 'behaviour' Parameters")
 
         Parameters.BigFoot = read_yaml(params['consensus']['BigFoot'])
         Parameters.PBFT = read_yaml(params['consensus']['PBFT'])

@@ -13,6 +13,8 @@ application:
   Tn: 100 # number of transaction produced per second
   base_transation_size: 0 # the base size of each transactions
   Tsize: 0.001 # the average size of a transaction (exponential distribution)
+  Faulty_nodes: 1   #The number of nodes that can fail
+  Byzantine_nodes: 0    #The number of malicious nodes
 
 execution:
   creation_time: 0.1 # block creation delay
@@ -46,3 +48,37 @@ consensus:
   BigFoot: Chain/Consensus/BigFoot/BigFoot_config.yaml
   PBFT: Chain/Consensus/PBFT/PBFT_config.yaml
   FBA: Chain/Consensus/FBA/FBA_config.yaml
+
+# behaviour of byzantine and faulty nodes
+behaviour:
+  behaviour_interval: 10
+
+  byzantine_nodes:
+    # percent of nodes that will be byzantine
+    # (percentange based on how many faulty nodes the network can tolerate)
+    num_byzantine: 0
+  sync:
+    # define the chance a byzantine node will send bad sync data 
+    # (and the delay that will cause)
+    bad_data: 
+      delay: 10
+    # define the chance a byzantine node will not responde to a sync message
+    # (and the delay that will cause) 
+    no_response: 
+      delay: 5
+    probs:
+      low: 5
+      high: 20
+
+  crash_probs:
+    # percent of nodes that can crash (go offiline)
+    # (based on the number of faulty nodes that the CP can tolerate) 
+    faulty_nodes: 0
+    # probabilities for crash
+    mean_fault_time: 
+      low: 30
+      high: 60
+    # how long for the node to recover
+    mean_recovery_time: 
+      low: 10
+      high: 60

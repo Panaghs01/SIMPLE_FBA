@@ -156,7 +156,13 @@ class FBA():
         '''
         self.set_state()
         round = payload['blocks'][-1].extra_data['round']
-
+        
+        self.msgs['prepare'] = payload['blocks'][-1] \
+                .extra_data['votes']['prepare'][0]
+        
+        self.msgs['commit'] = payload['blocks'][-1] \
+                .extra_data['votes']['commit'][0]
+                
         self.start(round, time)
 
     ########################## HANDLERER ###########################
@@ -166,8 +172,6 @@ class FBA():
         match event.payload["type"]:
             case 'propose':
                 return state_transitions.propose(event.actor.cp, event)
-            case 'pre_prepare':
-                return state_transitions.pre_prepare(event.actor.cp, event)
             case 'prepare':
                 return state_transitions.prepare(event.actor.cp, event)
             case 'commit':

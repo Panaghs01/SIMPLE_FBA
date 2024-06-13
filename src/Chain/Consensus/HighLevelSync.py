@@ -51,7 +51,7 @@ def create_local_sync_event(desynced_node, request_node, time):
         # add the delay of the current block to the total delay
         total_delay += delay
 
-        # update time desynced node will recieve missing block
+        # update time desynced node will receive missing block
         missing_blocks[i].time_added = time + total_delay
         missing_blocks[i].extra_data['synced'] = True
 
