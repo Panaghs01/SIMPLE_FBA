@@ -39,7 +39,7 @@ def misbehave(state):
         if coinflip == 1:
             state.state='mispreparing'
         else: 
-            state.state='miscommiting'
+            state.state='miscommitting'
     elif chance<delay_chance:
         state.state='delaying'
         state.node.delay=random.randint(1,10)
@@ -106,7 +106,7 @@ def prepare(state, event):
             state.state='new_round'
         elif can_commit(state.node):
             state.state='commit' 
-        elif state.state=='mispreparing' or state.state=='miscommiting':
+        elif state.state=='mispreparing' or state.state=='miscommitting':
             pass
         else:
             state.state='prepared'
@@ -129,7 +129,7 @@ def prepare(state, event):
                 
                 state.process_vote('prepare',state.node,state.rounds.round,time)
 
-                # if >= threshold ammount of nodes have prepared we can start commiting
+                # if >= threshold ammount of nodes have prepared we can start committing
                 if can_commit(state.node):
                     # change to prepared
                     state.state = 'commit'
@@ -203,7 +203,7 @@ def prepare(state, event):
                     state.process_vote('prepare', state.node, state.rounds.round, time)
                 #broadcast a propose statement, in case it fools anyone
                 FBA_messages.broadcast_prepare(state, time, block)
-        case 'miscommiting':
+        case 'miscommitting':
             if state.validate_block(block):
                 # store block as current block
                 state.block = event.payload['block'].copy()
@@ -244,7 +244,7 @@ def commit(state, event):
                 state.state='new_round'
             elif can_commit(state.node):
                 state.state='commit' 
-            elif state.state=='mispreparing' or state.state=='miscommiting':
+            elif state.state=='mispreparing' or state.state=='miscommitting':
                 pass
             else:
                 state.state='prepared'
@@ -316,7 +316,7 @@ def commit(state, event):
                            event.creator.id, time, Network.size(event)))            
             #broadcast a propose statement, in case it fools anyone
             FBA_messages.broadcast_prepare(state, time, block)
-        case 'miscommiting':
+        case 'miscommitting':
             if event.creator.id not in state.node.cp.msgs['prepare']:
                 #Same as prepare, no block == only broadcast
                 if state.block is not None:
