@@ -106,13 +106,22 @@ class Manager:
                     f"Event '{event.payload['type']}'was not handled by its own handler...")
 
     def simulation_details(self):
-        s = tools.color("-"*28 + "NODE INFO" + '-'*28) + '\n'
-        s += ("NODE\tLOCATION\tBANDWIDTH\tCP\tNEIGHBOURS") + '\n'
-        for n in self.sim.nodes:
-            neigh_list = ','.join([str(n.id) for n in n.neighbours])
-            s += f"{'%3d'%n.id} {'%13s'%n.location}\t{'%.2f' % n.bandwidth}\t{'%10s'%n.cp.NAME}\t{'%12s'%neigh_list}" + '\n'
-
-        s += tools.color("-"*25 + "SIM PARAMETERS" + '-'*25) + '\n'
-        s += Parameters.parameters_to_string()
+        if Parameters.simulation['init_CP']=='FBA':
+            s = tools.color("-"*28 + "NODE INFO" + '-'*28) + '\n'
+            s += ("NODE\tLOCATION\tBANDWIDTH\t\tCP\tTrustList") + '\n'
+            for n in self.sim.nodes:
+                s += f"{'%3d'%n.id} {'%13s'%n.location}\t{'%.2f' % n.bandwidth}\t{'%10s'%n.cp.NAME}\t{'%12s'%n.trust_list}" + '\n'
+    
+            s += tools.color("-"*25 + "SIM PARAMETERS" + '-'*25) + '\n'
+            s += Parameters.parameters_to_string()
+        else:
+            s = tools.color("-"*28 + "NODE INFO" + '-'*28) + '\n'
+            s += ("NODE\tLOCATION\tBANDWIDTH\tCP\tNEIGHBOURS") + '\n'
+            for n in self.sim.nodes:
+                neigh_list = ','.join([str(n.id) for n in n.neighbours])
+                s += f"{'%3d'%n.id} {'%13s'%n.location}\t{'%.2f' % n.bandwidth}\t{'%10s'%n.cp.NAME}\t{'%12s'%neigh_list}" + '\n'
+    
+            s += tools.color("-"*25 + "SIM PARAMETERS" + '-'*25) + '\n'
+            s += Parameters.parameters_to_string()
 
         return s
