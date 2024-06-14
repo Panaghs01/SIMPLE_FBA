@@ -64,7 +64,7 @@ class Metrics:
         for key, value in Metrics.decentralisation.items():
             averages[key]["Decentralisation"] = "%.6f" % value
 
-        print(tools.color(f'{"-"*30} METRICS {"-"*30}', 41))
+        print(tools.color(f'{"-"*51} METRICS {"-"*51}', 44))
 
         for key, value in averages.items():
             print(f"Node: {key} -> {value}")

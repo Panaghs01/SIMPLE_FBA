@@ -8,19 +8,6 @@ from Chain.tools import color
 
 import random
 
-# class Behaviour():
-#     def __init__(self,node,Faulty):
-#         if Faulty:
-#             self.fault_chance = random.randint(5,20)
-#         else:
-#             pass
-    
-#     def fail(self,node):
-#         chance = random.randint(0,100)
-#         if chance < self.fault_chance:
-#             node.kill()
-
-
 class Node():
     '''
     Node - models a blockchain node
@@ -102,7 +89,7 @@ class Node():
     def __str__(self, full=False):
         if self.state.alive:
             if full:
-                return f"{color(f'Node: {self.id}',42)}\n   LATEST_BLOCKS {self.trunc_ids}  local_pool: {len(self.pool)}\n SYNCED: {self.state.synced} | CP: {self.cp.NAME} | CHANGE_TO: {Parameters.application['CP'].NAME} | req msg: {Parameters.application['required_messages']} f: {Parameters.application['f']} \
+                return f"{color(f'Node: {self.id}',46)}\n   LATEST_BLOCKS {self.trunc_ids}  local_pool: {len(self.pool)}\n SYNCED: {self.state.synced} | CP: {self.cp.NAME} | CHANGE_TO: {Parameters.application['CP'].NAME} | req msg: {Parameters.application['required_messages']} f: {Parameters.application['f']} \
                         \n   CP: {self.cp.state_to_string()} \n   BEHAVIOUR: {self.behaviour_state_to_string}\n  Trust List: {self.trust_list}\n   Quorum Set: {self.quorum_set}\n   Quorum Slices: {self.quorum_slices}\n"
             else:
                 return f"Node: {self.id}"

@@ -27,8 +27,9 @@ def run():
     Metrics.measure_all(manager.sim)
     Metrics.print_metrics()
 
-    s = f"{'-'*30} EVENTS (event_type: node_id:no_events ... ) {'-'*30}"
+    s = f"{'-'*33} EVENTS (event_type: node_id:no_events ... ) {'-'*33}"
     print(tools.color(s, 43))
+
 
     for key, value in Parameters.simulation['events'].items():
         if isinstance(value, dict):
@@ -38,8 +39,8 @@ def run():
             print(f'{key}: {value}')
 
     print(tools.color(
-        f"SIMULATED TIME {'%.2f'%manager.sim.clock}", 45))
-    print(tools.color(f"EXECUTION TIME: {runtime}", 45))
+        f"SIMULATED TIME {'%.2f'%manager.sim.clock}", 46))
+    print(tools.color(f"EXECUTION TIME: {runtime}", 46))
 
 
 if __name__ == "__main__":

@@ -101,10 +101,10 @@ def sim_info(simulator, print_event_queues=True):
 
 
         s = ""
-        s += color('-'*30 + 'NODES' + '-'*33, 40) + '\n'
+        s += color('-'*30 + 'NODES' + '-'*33, 46) + '\n'
         for n in simulator.nodes:
             s += n.__str__(full=True) + '\n'
-        s += color('-'*30 + 'NODES' + '-'*33, 40) + '\n'
+        s += color('-'*30 + 'NODES' + '-'*33, 46) + '\n'
 
         if print_event_queues:
             # system events are set to -1 to allow for sorting based on node if later
@@ -135,15 +135,15 @@ def sim_info(simulator, print_event_queues=True):
             for key in sort_nodes:
                 if key != -1:
                     s += color(("-"*30 + "NODE " +
-                               str(key) + '-'*32), 40) + '\n'
+                               str(key) + '-'*32), 46) + '\n'
                     s += simulator.nodes[key].cp.state_to_string()+'\n\n'
                 else:
-                    s += color(("-"*30 + "SYSTEM" + '-'*32), 40) + '\n'
+                    s += color(("-"*30 + "SYSTEM" + '-'*32), 43) + '\n'
 
                 for e in events_per_node[key]:
                     s += e
 
-                s += color(("-"*30 + "backlog " + '-'*30), 40) + '\n'
+                s += color(("-"*30 + "backlog " + '-'*30), 43) + '\n'
 
                 for e in simulator.nodes[key].backlog:
                     s += ' ' + str(e) + '\n'
