@@ -96,7 +96,10 @@ def prepare(state, event):
     if future is not None:
         return future
     time += Parameters.execution["msg_val_delay"]
-
+    
+    if state.node.behaviour.Byzantine: 
+        misbehave(state)
+        
     if state.state=='delaying':
         time+=state.node.behaviour.delay
         if not state.block:
@@ -196,7 +199,8 @@ def prepare(state, event):
                 state.block.extra_data['votes']['prepare'].append((
                     event.creator.id, time, Network.size(event)))
                 # count own vote
-                state.process_vote('prepare', state.node, state.rounds.round, time)
+                if state.node.id not in state.node.cp.msgs['prepare']:
+                    state.process_vote('prepare', state.node, state.rounds.round, time)
                 #broadcast a propose statement, in case it fools anyone
                 FBA_messages.broadcast_prepare(state, time, block)
         case 'miscommiting':
@@ -306,14 +310,12 @@ def commit(state, event):
                                        state.rounds.round, time)
                     state.block.extra_data['votes']['prepare'].append((
                                     event.creator.id, time, Network.size(event)))
-                else:
-                    pass
-            state.process_vote('commit', state.node,
-                               state.rounds.round, time)
+            state.process_vote('commit', event.creator,
+                              state.rounds.round, time)
+            state.block.extra_data['votes']['commit'].append((
+                           event.creator.id, time, Network.size(event)))            
             #broadcast a propose statement, in case it fools anyone
             FBA_messages.broadcast_prepare(state, time, block)
-            # count own vote
-            state.process_vote('prepare', state.node, state.rounds.round, time)
         case 'miscommiting':
             if event.creator.id not in state.node.cp.msgs['prepare']:
                 #Same as prepare, no block == only broadcast
@@ -322,14 +324,15 @@ def commit(state, event):
                                        state.rounds.round, time)
                     state.block.extra_data['votes']['prepare'].append((
                                     event.creator.id, time, Network.size(event)))
-                else:
-                    pass
-            state.process_vote('commit', state.node,
-                               state.rounds.round, time)
+                state.process_vote('commit', event.creator,
+                                  state.rounds.round, time)
+                state.block.extra_data['votes']['commit'].append((
+                               event.creator.id, time, Network.size(event)))
+            if state.node.id not in state.node.cp.msgs['commit']:
+               state.process_vote('commit', state.node,
+                                  state.rounds.round, time)
             #broadcast a commit statement, without caring if slice is satisfied
             FBA_messages.broadcast_commit(state, time, block)
-            # count own vote
-            state.process_vote('commit', state.node, state.rounds.round, time)
         case _:
             raise ValueError(
                 f"Unexpected state '{state.state} for cp FBA...'")
