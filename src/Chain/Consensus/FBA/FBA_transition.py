@@ -169,11 +169,18 @@ def prepare(state, event):
         case 'round_change':
             return 'invalid'  # node has decided to skip this round
         case 'idle':
+            #If node is idle do not notify anyone just store the information
+            #And hide in the shadows
+            state.block = event.payload['block'].copy()
+            state.block.extra_data['votes'] = {
+                    'prepare': [], 'commit': []}
+            
             pass
             #if node is idle when the block is proposed
             #it very obviously doesnt copy the block and therefore
             #it will crash the shit later
             #FIX!
+            #FIXCED MEKANIK
         case 'mispreparing':
             if state.validate_block(block):
                 # store block as current block
@@ -279,10 +286,15 @@ def commit(state, event):
             pass
         case 'mispreparing':
             if event.creator.id not in state.node.cp.msgs['prepare']:
-                state.process_vote('prepare', event.creator,
-                                   state.rounds.round, time)
-                state.block.extra_data['votes']['prepare'].append((
-                                event.creator.id, time, Network.size(event)))
+                #If there is no block only broadcast the byzantine msg
+                #If there is a block also add the votes of that node
+                if state.block is not None:
+                    state.process_vote('prepare', event.creator,
+                                       state.rounds.round, time)
+                    state.block.extra_data['votes']['prepare'].append((
+                                    event.creator.id, time, Network.size(event)))
+                else:
+                    pass
             state.process_vote('commit', state.node,
                                state.rounds.round, time)
             #broadcast a propose statement, in case it fools anyone
@@ -291,10 +303,14 @@ def commit(state, event):
             state.process_vote('prepare', state.node, state.rounds.round, time)
         case 'miscommiting':
             if event.creator.id not in state.node.cp.msgs['prepare']:
-                state.process_vote('prepare', event.creator,
-                                   state.rounds.round, time)
-                state.block.extra_data['votes']['prepare'].append((
-                                event.creator.id, time, Network.size(event)))
+                #Same as prepare, no block == only broadcast
+                if state.block is not None:
+                    state.process_vote('prepare', event.creator,
+                                       state.rounds.round, time)
+                    state.block.extra_data['votes']['prepare'].append((
+                                    event.creator.id, time, Network.size(event)))
+                else:
+                    pass
             state.process_vote('commit', state.node,
                                state.rounds.round, time)
             #broadcast a commit statement, without caring if slice is satisfied
