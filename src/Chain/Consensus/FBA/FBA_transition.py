@@ -27,10 +27,11 @@ def can_commit(node):
             return True
     return False
 
-def misbehave(state):
+def misbehave(state): 
     chance = random.randint(0, 100)
-    idle_chance = 10 #random.randint(0,10)
-    misinform = 20 #random.randint(idle_chance,idle_chance+10)
+    idle_chance = random.randint(0,10)
+    misinform = random.randint(idle_chance,idle_chance+10)
+    delay_chance= random.randint(misinform,misinform+10)
     if chance<=idle_chance:
         state.state='idle'
     elif chance<=misinform:
@@ -39,21 +40,20 @@ def misbehave(state):
             state.state='mispreparing'
         else: 
             state.state='miscommiting'
-
+    elif chance<delay_chance:
+        state.state='delaying'
+        state.node.delay=random.randint(1,10)
+        
+        
 def propose(state, event):
     time = event.time
       
-    #if state.node.behaviour.Faulty==True: fault(state) 
-    #if state.node.behaviour.Byzantine==True: misbehave(state) 
-
-    if not state.node.behaviour.Byzantine:
+    if not state.state=='delaying':
         # attempt to create block
         block, creation_time = state.create_FBA_block(time)
     else:
-        #make this have wronk time
-        #to simulate byzantine
-        #how make?!?!
-        block, creation_time = state.create_FBA_block(time)
+        block, creation_time = state.create_FBA_block(
+            time+state.node.behaviour.delay)
     
     if block is None:
         # if there is still time in the round, attempt to reschedule later when txions might be there
@@ -74,10 +74,12 @@ def propose(state, event):
                           state.rounds.round, time)
         state.block.extra_data['votes']['prepare'].append((
             event.creator.id, time, Network.size(event)))
+        
         if state.node.behaviour.Byzantine==False:
-           FBA_messages.trusted_cast_prepare(state, time, block)
+            FBA_messages.trusted_cast_prepare(state, time, block)
         else: 
-            FBA_messages.broadcast_prepare(state, time, block)
+            FBA_messages.broadcast_prepare(
+                state, time+state.node.behaviour.delay, block)
 
     return 'handled'
 
@@ -95,10 +97,16 @@ def prepare(state, event):
         return future
     time += Parameters.execution["msg_val_delay"]
 
-    # if state.node.behaviour.Faulty==True: fault(state) 
-    if state.node.behaviour.Byzantine: 
-        #check if node is in sync
-        misbehave(state) 
+    if state.state=='delaying':
+        time+=state.node.behaviour.delay
+        if not state.block:
+            state.state='new_round'
+        elif can_commit(state.node):
+            state.state='commit' 
+        elif state.state=='mispreparing' or state.state=='miscommiting':
+            pass
+        else:
+            state.state='prepared'
     
     match state.state:
         case 'new_round':
@@ -176,11 +184,6 @@ def prepare(state, event):
                     'prepare': [], 'commit': []}
             
             pass
-            #if node is idle when the block is proposed
-            #it very obviously doesnt copy the block and therefore
-            #it will crash the shit later
-            #FIX!
-            #FIXCED MEKANIK
         case 'mispreparing':
             if state.validate_block(block):
                 # store block as current block
@@ -229,8 +232,18 @@ def commit(state, event):
         return future
     time += Parameters.execution["msg_val_delay"]
     
-    #if state.node.behaviour.Faulty==True: fault(state) 
-    if state.node.behaviour.Byzantine==True: misbehave(state) 
+    if state.node.behaviour.Byzantine: 
+        misbehave(state)
+        if state.state=='delaying':
+            time+=state.node.behaviour.delay
+            if not state.block:
+                state.state='new_round'
+            elif can_commit(state.node):
+                state.state='commit' 
+            elif state.state=='mispreparing' or state.state=='miscommiting':
+                pass
+            else:
+                state.state='prepared'
     
     match state.state:
         case 'prepared':

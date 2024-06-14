@@ -10,7 +10,7 @@ import sys
 import statistics as st
 
 ############### SEEDS ############
-seed = 5
+seed = 0
 random.seed(seed)
 numpy.random.seed(seed)
 ############## SEEDS ############

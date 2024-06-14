@@ -76,8 +76,9 @@ class Node():
         self.quorum_slices = None
         
         self.behaviour = SimpleNamespace(
-            Faulty = False,
-            Byzantine = False
+            Byzantine = False,
+            block_delay = random.randint(1,10),
+            delay=0
         )
 
         self.backlog = []
@@ -91,21 +92,6 @@ class Node():
         
         self.misbehave_chance = 0
         self.fault_chance = 0
-        
-    #this needs to be transfered to FBA_transition  
-    # def fault(self, time):
-    #     chance = random.randint(0, 100)
-    #     #if can, fix
-    #     if self.fault_chance > chance:
-    #         self.kill()
-    #         resurrect_time = time + random.randint(
-    #             Parameters.behaviour["crash_probs"]["mean_recovery_time"]["low"],
-    #             Parameters.behaviour["crash_probs"]["mean_recovery_time"]["high"])
-    #         #self.scheduler.schedule_event.resurrect
-    #         #self.scheduler.schedule_event.resync
-    #     else:
-    #         pass
-    
         
     def __repr__(self):
         if self.state.alive:
