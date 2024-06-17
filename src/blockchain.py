@@ -10,7 +10,7 @@ import sys
 import statistics as st
 
 ############### SEEDS ############
-seed = 5
+seed = 555
 random.seed(seed)
 numpy.random.seed(seed)
 ############## SEEDS ############
@@ -28,7 +28,7 @@ def run():
     Metrics.print_metrics()
 
     s = f"{'-'*33} EVENTS (event_type: node_id:no_events ... ) {'-'*33}"
-    print(tools.color(s, 43))
+    print(tools.color(s, 45))
 
 
     for key, value in Parameters.simulation['events'].items():
@@ -39,8 +39,8 @@ def run():
             print(f'{key}: {value}')
 
     print(tools.color(
-        f"SIMULATED TIME {'%.2f'%manager.sim.clock}", 46))
-    print(tools.color(f"EXECUTION TIME: {runtime}", 46))
+        f"SIMULATED TIME {'%.2f'%manager.sim.clock}", 40))
+    print(tools.color(f"EXECUTION TIME: {runtime}", 40))
 
 
 if __name__ == "__main__":

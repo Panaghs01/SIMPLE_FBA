@@ -202,7 +202,7 @@ def prepare(state, event):
                 if state.node.id not in state.node.cp.msgs['prepare']:
                     state.process_vote('prepare', state.node, state.rounds.round, time)
                 #broadcast a propose statement, in case it fools anyone
-                FBA_messages.broadcast_prepare(state, time, block)
+            FBA_messages.broadcast_prepare(state, time, block)
         case 'miscommitting':
             if state.validate_block(block):
                 # store block as current block
@@ -217,7 +217,7 @@ def prepare(state, event):
                 # count own vote
                 state.process_vote('prepare', state.node, state.rounds.round, time)
                 #broadcast a propose statement, in case it fools anyone
-                FBA_messages.broadcast_commit(state, time, block)
+            FBA_messages.broadcast_commit(state, time, block)
         case _:
             raise ValueError(
                 f"Unexpected state '{state.state}' for cp FBA...'")
@@ -310,10 +310,10 @@ def commit(state, event):
                                        state.rounds.round, time)
                     state.block.extra_data['votes']['prepare'].append((
                                     event.creator.id, time, Network.size(event)))
-            state.process_vote('commit', event.creator,
-                              state.rounds.round, time)
-            state.block.extra_data['votes']['commit'].append((
-                           event.creator.id, time, Network.size(event)))            
+                    state.process_vote('commit', event.creator,
+                                      state.rounds.round, time)
+                    state.block.extra_data['votes']['commit'].append((
+                                   event.creator.id, time, Network.size(event)))            
             #broadcast a propose statement, in case it fools anyone
             FBA_messages.broadcast_prepare(state, time, block)
         case 'miscommitting':
@@ -324,10 +324,10 @@ def commit(state, event):
                                        state.rounds.round, time)
                     state.block.extra_data['votes']['prepare'].append((
                                     event.creator.id, time, Network.size(event)))
-                state.process_vote('commit', event.creator,
-                                  state.rounds.round, time)
-                state.block.extra_data['votes']['commit'].append((
-                               event.creator.id, time, Network.size(event)))
+                    state.process_vote('commit', event.creator,
+                                      state.rounds.round, time)
+                    state.block.extra_data['votes']['commit'].append((
+                                   event.creator.id, time, Network.size(event)))
             if state.node.id not in state.node.cp.msgs['commit']:
                state.process_vote('commit', state.node,
                                   state.rounds.round, time)
